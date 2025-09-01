@@ -1,0 +1,8 @@
+[package]
+name = "wasm-python"
+version = "0.1.1"
+edition = "2021"
+
+[dependencies]
+pyo3.workspace = true
+# wit-bindgen.workspace = true
