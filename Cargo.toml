@@ -107,7 +107,7 @@ too_long_first_doc_paragraph = "allow"
 wasm-python = { path = "crates/wasm-python" }
 
 pyo3 = { version = "0.19.0", features = ["abi3-py311"] }
-wlr-libpy = { git = "https://github.com/vmware-labs/webassembly-language-runtimes.git", features = [
-  "build",
-] }
-# wit-bindgen = "0.42.1"
+
+wit-bindgen = "0.42.1"
+tokio = "1.47.1"
+anyhow = "1.0.99"

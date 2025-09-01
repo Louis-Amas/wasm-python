@@ -6,9 +6,13 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 
-[[bin]]
-name = "runner"
-path = "src/main.rs"
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "strategy:strategy"
+
+[package.metadata.component.dependencies]
 
 [lints]
 workspace = true
@@ -16,6 +20,11 @@ workspace = true
 [dependencies]
 pyo3.workspace = true
 wasm-python.workspace = true
+wlr-libpy = { git = "https://github.com/vmware-labs/webassembly-language-runtimes.git", features = [
+  "py_main",
+] }
 
 [build-dependencies]
-wlr-libpy.workspace = true
+wlr-libpy = { git = "https://github.com/vmware-labs/webassembly-language-runtimes.git", features = [
+  "build",
+] }

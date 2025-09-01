@@ -1,0 +1,15 @@
+[package]
+name = "wasm-runtime"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+tokio.workspace = true
+wasmtime = { version = "33.0.0", features = [
+  "component-model",
+  "cranelift",
+  "std",
+  "runtime",
+] }
+wasmtime-wasi = "33.0.0"

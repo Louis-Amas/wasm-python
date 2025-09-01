@@ -4,11 +4,11 @@ use pyo3::{IntoPy, Py, PyAny, PyResult, Python};
 pub mod py_module;
 use py_module::make_person_module;
 
-// pub mod bindings {
-//
-//     use wit_bindgen::generate;
-//     generate!({path: "strategy.wit", pub_export_macro: true, export_macro_name: "export", });
-// }
+pub mod bindings {
+
+    use wit_bindgen::generate;
+    generate!({path: "strategy.wit", pub_export_macro: true, export_macro_name: "export", });
+}
 
 pub fn call_function<T: IntoPy<Py<PyTuple>>>(
     function_name: &str,
@@ -27,4 +27,8 @@ pub fn call_function<T: IntoPy<Py<PyTuple>>>(
         fun.call1(py, args)?;
         Ok(())
     })
+}
+
+pub trait Plugin {
+    fn execute(code: String) -> Result<(), String>;
 }

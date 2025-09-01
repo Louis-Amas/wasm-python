@@ -2,5 +2,5 @@ package strategy:strategy;
 
 world strategy {
   import indicator: func(key: string) -> result<list<u8>, string>;
-  export exec: func() -> result<list<u8>, string>;
+  export exec: func(code: string) -> result<list<u8>, string>;
 }
