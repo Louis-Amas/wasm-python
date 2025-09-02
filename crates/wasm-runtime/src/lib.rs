@@ -46,7 +46,7 @@ impl Runtime {
         let mut config = Config::new();
         config.async_support(false);
         config.wasm_component_model(true);
-        config.debug_info(true);
+        config.debug_info(false);
         let engine = Engine::new(&config)?;
 
         let mut builder = WasiCtxBuilder::new();
@@ -86,7 +86,7 @@ impl Runtime {
     }
 
     pub fn instantiate_strategy(&mut self, wasm: &[u8]) -> Result<Strategy> {
-        let component = Component::from_binary(&self.engine, wasm)?;
+        let component = unsafe { Component::deserialize(&self.engine, wasm)? };
         Strategy::instantiate(&mut self.store, &component, &self.linker)
     }
 
@@ -108,8 +108,7 @@ impl Runtime {
 mod test {
     use super::Runtime;
 
-    const STRATEGY_BYTES: &[u8] =
-        include_bytes!("/home/arconec/Tests/wasm-anera/target/wasm32-wasip1/debug/runner.wasm");
+    const STRATEGY_BYTES: &[u8] = include_bytes!("/home/arconec/Tests/wasm-anera/runner.cwasm");
 
     #[test]
     fn wasm_strategy() {
