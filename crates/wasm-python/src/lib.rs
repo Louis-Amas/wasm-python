@@ -12,14 +12,17 @@ pub mod bindings {
     generate!({path: "strategy.wit", pub_export_macro: true, export_macro_name: "export", });
 }
 pub mod py_module;
+pub mod py_rust_decimal;
 
 use py_module::make_person_module;
+use py_rust_decimal::make_decimal_module;
 
 pub fn call_function<T>(function_name: &CStr, function_code: &CStr, args: T) -> PyResult<()>
 where
     T: for<'py> PyCallArgs<'py>,
 {
     append_to_inittab!(make_person_module);
+    append_to_inittab!(make_decimal_module);
     Python::initialize();
 
     Python::attach(|py| {

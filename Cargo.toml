@@ -111,3 +111,5 @@ pyo3 = { version = "0.26.0", features = ["abi3-py311"] }
 wit-bindgen = "0.42.1"
 tokio = "1.47.1"
 anyhow = "1.0.99"
+rust_decimal = "1.37.2"
+rust_decimal_macros = "1.37.1"
