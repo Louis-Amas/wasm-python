@@ -32,3 +32,5 @@ def my_func(*args, **kwargs):
     print(f"a * b = {a.mul(b)}")
     print(f"a / b = {a.div(b)}")
     print(f"a.to_f64() = {a.to_f64()}")
+
+    return bytes([1, 2, 3])

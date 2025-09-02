@@ -2,7 +2,7 @@ use std::ffi::CStr;
 
 use pyo3::call::PyCallArgs;
 use pyo3::ffi::c_str;
-use pyo3::types::PyModule;
+use pyo3::types::{PyBytes, PyModule};
 use pyo3::PyResult;
 use pyo3::{append_to_inittab, prelude::*};
 
@@ -17,7 +17,7 @@ pub mod py_rust_decimal;
 use py_module::make_person_module;
 use py_rust_decimal::make_decimal_module;
 
-pub fn call_function<T>(function_name: &CStr, function_code: &CStr, args: T) -> PyResult<()>
+pub fn call_function<T>(function_name: &CStr, function_code: &CStr, args: T) -> PyResult<Vec<u8>>
 where
     T: for<'py> PyCallArgs<'py>,
 {
@@ -33,8 +33,10 @@ where
         // getattr expects a PyString — convert &CStr -> &str (UTF-8). lossy is fine for attr names.
         let fun = module.getattr(function_name.to_string_lossy().as_ref())?;
 
-        fun.call1(args)?;
-        Ok(())
+        let result = fun.call1(args)?;
+
+        let bytes: Bound<'_, PyBytes> = result.downcast_into()?;
+        Ok(bytes.as_bytes().to_vec())
     })
 }
 
