@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 tokio.workspace = true
-wasmtime = { version = "33.0.0", features = [
+wasmtime = { version = "36.0.2", features = [
   "component-model",
   "cranelift",
   "std",
   "runtime",
 ] }
-wasmtime-wasi = "33.0.0"
+wasmtime-wasi = "36.0.2"

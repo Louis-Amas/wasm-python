@@ -1,49 +1,44 @@
 use std::path::Path;
 
 use anyhow::{anyhow, Result};
-use wasmtime::component::bindgen;
+use wasmtime::component::{bindgen, HasSelf};
 use wasmtime::{
-    component::{Component, Linker, ResourceTable},
+    component::{Component, Linker},
     Config, Engine, Store,
 };
-use wasmtime_wasi::p2::{add_to_linker_sync, IoView, WasiCtx, WasiCtxBuilder, WasiView};
-use wasmtime_wasi::{DirPerms, FilePerms};
+use wasmtime_wasi::p2::add_to_linker_sync;
+use wasmtime_wasi::{
+    DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView,
+};
 
-bindgen!({world: "strategy", path: "../wasm-python/strategy.wit", async: false,});
+bindgen!({ world: "strategy", path: "../wasm-python/strategy.wit" });
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct WasmStateWrapper {
     pub state: Vec<u8>,
+    pub wasi_ctx: WasiCtx,
+    pub resource_table: ResourceTable,
+}
+
+impl WasiView for WasmStateWrapper {
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.wasi_ctx,
+            table: &mut self.resource_table,
+        }
+    }
 }
 
 impl StrategyImports for WasmStateWrapper {
-    fn indicator(&mut self, key: String) -> Result<Vec<u8>, String> {
-        return Ok(Default::default());
-    }
-}
-
-struct WasmState {
-    ctx: WasiCtx,
-    table: ResourceTable,
-    state: WasmStateWrapper,
-}
-
-impl IoView for WasmState {
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
-    }
-}
-
-impl WasiView for WasmState {
-    fn ctx(&mut self) -> &mut WasiCtx {
-        &mut self.ctx
+    fn indicator(&mut self, _key: String) -> Result<Vec<u8>, String> {
+        Ok(Default::default())
     }
 }
 
 pub struct Runtime {
     engine: Engine,
-    linker: Linker<WasmState>,
-    store: Store<WasmState>,
+    store: Store<WasmStateWrapper>,
+    linker: Linker<WasmStateWrapper>,
 }
 
 impl Runtime {
@@ -55,8 +50,6 @@ impl Runtime {
         let engine = Engine::new(&config)?;
 
         let mut builder = WasiCtxBuilder::new();
-
-        // Mount host path into guest /usr
         builder
             .inherit_stdio()
             .preopened_dir(
@@ -69,19 +62,21 @@ impl Runtime {
             )
             .unwrap();
 
+        let wasi_ctx = builder.build();
+        let resource_table = ResourceTable::new();
+
         let store = Store::new(
             &engine,
-            WasmState {
-                ctx: builder.build(),
-                table: ResourceTable::new(),
-                state: Default::default(),
+            WasmStateWrapper {
+                state: Vec::new(),
+                wasi_ctx,
+                resource_table,
             },
         );
 
-        let mut linker: Linker<WasmState> = Linker::new(&engine);
-
+        let mut linker: Linker<WasmStateWrapper> = Linker::new(&engine);
         add_to_linker_sync(&mut linker)?;
-        Strategy::add_to_linker(&mut linker, |ctx| &mut ctx.state)?;
+        Strategy::add_to_linker::<_, HasSelf<_>>(&mut linker, |state: &mut _| state)?;
 
         Ok(Self {
             engine,
@@ -89,8 +84,8 @@ impl Runtime {
             linker,
         })
     }
+
     pub fn instantiate_strategy(&mut self, wasm: &[u8]) -> Result<Strategy> {
-        println!("instantiate");
         let component = Component::from_binary(&self.engine, wasm)?;
         Strategy::instantiate(&mut self.store, &component, &self.linker)
     }
@@ -98,12 +93,12 @@ impl Runtime {
     pub fn execute(&mut self, instance: &Strategy) -> Result<()> {
         const STRATEGY_CODE: &str =
             include_str!("/home/arconec/Tests/wasm-anera/bin/runner/src/py-func.py");
-        let results = instance.call_exec(&mut self.store, STRATEGY_CODE);
-        println!("{:?}", results);
 
-        results
-            .map_err(|err| anyhow!(err))?
-            .map_err(|err| anyhow!(err))?;
+        // call_exec returns Result<Result<_, String>, anyhow::Error>
+        instance
+            .call_exec(&mut self.store, STRATEGY_CODE)
+            .map_err(|e| anyhow!(e))?
+            .map_err(|guest_err| anyhow!(guest_err))?;
 
         Ok(())
     }
@@ -120,7 +115,9 @@ mod test {
     fn wasm_strategy() {
         let mut runtime = Runtime::new().unwrap();
 
+        println!("instantiate");
         let strategy = runtime.instantiate_strategy(STRATEGY_BYTES).unwrap();
+        println!("execute");
         runtime.execute(&strategy).unwrap();
     }
 }
