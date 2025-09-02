@@ -1,30 +1,36 @@
-use pyo3::types::{PyModule, PyTuple};
-use pyo3::{IntoPy, Py, PyAny, PyResult, Python};
+use std::ffi::CStr;
 
-pub mod py_module;
-use py_module::make_person_module;
+use pyo3::call::PyCallArgs;
+use pyo3::ffi::c_str;
+use pyo3::types::PyModule;
+use pyo3::PyResult;
+use pyo3::{append_to_inittab, prelude::*};
 
 pub mod bindings {
 
     use wit_bindgen::generate;
     generate!({path: "strategy.wit", pub_export_macro: true, export_macro_name: "export", });
 }
+pub mod py_module;
 
-pub fn call_function<T: IntoPy<Py<PyTuple>>>(
-    function_name: &str,
-    function_code: &str,
-    args: T,
-) -> PyResult<()> {
-    pyo3::append_to_inittab!(make_person_module);
+use py_module::make_person_module;
 
-    pyo3::prepare_freethreaded_python();
+pub fn call_function<T>(function_name: &CStr, function_code: &CStr, args: T) -> PyResult<()>
+where
+    T: for<'py> PyCallArgs<'py>,
+{
+    append_to_inittab!(make_person_module);
+    Python::initialize();
 
-    Python::with_gil(|py| -> PyResult<()> {
-        let fun: Py<PyAny> = PyModule::from_code(py, function_code, "", "")?
-            .getattr(function_name)?
-            .into();
+    Python::attach(|py| {
+        // from_code_bound is the 0.26 Bound API variant; &CStr works here
+        let module =
+            PyModule::from_code(py, function_code, c_str!("inline.py"), c_str!("inline_mod"))?;
 
-        fun.call1(py, args)?;
+        // getattr expects a PyString — convert &CStr -> &str (UTF-8). lossy is fine for attr names.
+        let fun = module.getattr(function_name.to_string_lossy().as_ref())?;
+
+        fun.call1(args)?;
         Ok(())
     })
 }

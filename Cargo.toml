@@ -106,7 +106,7 @@ too_long_first_doc_paragraph = "allow"
 [workspace.dependencies]
 wasm-python = { path = "crates/wasm-python" }
 
-pyo3 = { version = "0.19.0", features = ["abi3-py311"] }
+pyo3 = { version = "0.26.0", features = ["abi3-py311"] }
 
 wit-bindgen = "0.42.1"
 tokio = "1.47.1"

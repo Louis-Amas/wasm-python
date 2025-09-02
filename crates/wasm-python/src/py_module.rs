@@ -1,8 +1,9 @@
-use pyo3::{types::PyModule, PyResult, Python};
+use pyo3::prelude::*;
+use pyo3::types::PyModule;
+use pyo3::{PyResult, Python};
 
 #[derive(Clone)]
-#[pyo3::pyclass]
-#[pyo3(name = "Person")]
+#[pyclass(name = "Person")]
 pub struct Person {
     #[pyo3(get, set)]
     name: String,
@@ -12,7 +13,7 @@ pub struct Person {
     tags: Vec<String>,
 }
 
-#[pyo3::pymethods]
+#[pymethods]
 impl Person {
     #[new]
     fn new(name: String, age: u16) -> Self {
@@ -39,9 +40,9 @@ impl Person {
     }
 }
 
-#[pyo3::pyfunction]
+#[pyfunction]
 pub fn filter_by_tag(people: Vec<Person>, tag: String) -> Vec<Person> {
-    let mut result: Vec<Person> = vec![];
+    let mut result = Vec::new();
     for p in people.iter() {
         if p.tags.iter().any(|t| t == &tag) {
             result.push(p.clone());
@@ -50,9 +51,10 @@ pub fn filter_by_tag(people: Vec<Person>, tag: String) -> Vec<Person> {
     result
 }
 
-#[pyo3::pymodule]
+#[pymodule(gil_used = false)]
 #[pyo3(name = "person")]
-pub fn make_person_module(_py: Python<'_>, module: &PyModule) -> PyResult<()> {
-    module.add_function(pyo3::wrap_pyfunction!(filter_by_tag, module)?)?;
-    module.add_class::<Person>()
+pub fn make_person_module(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(pyo3::wrap_pyfunction!(filter_by_tag, m)?)?;
+    m.add_class::<Person>()?;
+    Ok(())
 }

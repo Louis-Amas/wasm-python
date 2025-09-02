@@ -1,5 +1,8 @@
+use std::ffi::CString;
+
 use pyo3::append_to_inittab;
 
+use pyo3::ffi::c_str;
 use wasm_python::bindings::Guest;
 use wasm_python::py_module::make_person_module;
 use wasm_python::{bindings::export, call_function, Plugin};
@@ -10,8 +13,10 @@ impl Plugin for TestStrategy {
     fn execute(code: String) -> Result<(), String> {
         append_to_inittab!(make_person_module);
 
+        let code = CString::new(code).map_err(|e| e.to_string())?;
+
         let result = call_function(
-            "my_func",
+            c_str!("my_func"),
             &code,
             (
                 ("John", 21, ["funny", "student"]),
